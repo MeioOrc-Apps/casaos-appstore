@@ -1,0 +1,71 @@
+name: art-catalog
+
+networks:
+  art-network:
+    driver: bridge
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    networks:
+      - art-network
+    environment:
+      POSTGRES_DB: art
+      POSTGRES_USER: art
+      POSTGRES_PASSWORD: art
+    volumes:
+      - /DATA/AppData/art-catalog/db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "art"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: ghcr.io/sergiosjs/art-catalog-api:v0.1.7
+    restart: unless-stopped
+    networks:
+      - art-network
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://art:art@db:5432/art
+      APP_NAME: "Art Catalog"
+      ENV: production
+      ENVIRONMENT: production
+      IMAGES_DIR: /app/data/images
+      JWT_SECRET: change-this-in-production-use-openssl
+      FIRST_ADMIN_EMAIL: admin@example.com
+      FIRST_ADMIN_PASSWORD: admin
+      RATE_LIMITS_DISABLED: "false"
+      COOKIE_SECURE: "false"
+      CORS_ORIGINS: "*"
+      IMAGE_SEARCH_PROVIDER: brave
+      BRAVE_API_KEY: "sua-chave-aqui"
+    volumes:
+      - /DATA/AppData/art-catalog/images:/app/data/images
+
+  frontend:
+    image: ghcr.io/sergiosjs/art-catalog-frontend:v0.1.7
+    restart: unless-stopped
+    networks:
+      - art-network
+    depends_on:
+      - api
+    ports:
+      - "5173:80"
+
+x-casaos:
+  author: sergio.sousa
+  category: Media
+  icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/photoprism.png
+  title:
+    custom: Art Catalog
+    en_us: Art Catalog
+  description:
+    en_us: A self-hosted art catalog and moodboard application.
+  port_map: "5173"
+  index: /
+  store_app_id: art-catalog

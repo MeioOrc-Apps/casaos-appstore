@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Media",
+    "font": "casa-media",
+    "description": "Media applications"
+  },
+  {
+    "name": "Productivity",
+    "font": "casa-productivity",
+    "description": "Productivity applications"
+  },
+  {
+    "name": "Utilities",
+    "font": "casa-utilities",
+    "description": "Utility applications"
+  }
+]
