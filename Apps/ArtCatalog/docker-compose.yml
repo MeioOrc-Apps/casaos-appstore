@@ -6,7 +6,7 @@ networks:
 
 services:
   db:
-    image: postgres:16-alpine
+    image: docker.io/postgres:16-alpine
     restart: unless-stopped
     networks:
       - art-network
