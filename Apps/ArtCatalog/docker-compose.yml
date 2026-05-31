@@ -23,7 +23,7 @@ services:
       retries: 5
 
   api:
-    image: ghcr.io/sergiosjs/art-catalog-api:v0.1.9
+    image: sergiosjs/art-catalog-api:v0.1.9
     restart: unless-stopped
     networks:
       - art-network
@@ -48,7 +48,7 @@ services:
       - /DATA/AppData/art-catalog/images:/app/data/images
 
   frontend:
-    image: ghcr.io/sergiosjs/art-catalog-frontend:v0.1.9
+    image: sergiosjs/art-catalog-frontend:v0.1.9
     restart: unless-stopped
     networks:
       - art-network
