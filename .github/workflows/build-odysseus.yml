@@ -24,6 +24,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout casaos-appstore
+        uses: actions/checkout@v4
+
       - name: Clone Odysseus source
         run: git clone --depth 1 --branch ${{ env.ODYSSEUS_BRANCH }} ${{ env.ODYSSEUS_REPO }} odysseus-src
 
@@ -51,3 +54,11 @@ jobs:
             ${{ env.DOCKERHUB_IMAGE }}:sha-${{ steps.upstream.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Update Docker Hub description
+        uses: peter-evans/dockerhub-description@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ env.DOCKERHUB_IMAGE }}
+          readme-filepath: ./Apps/Odysseus/README.md
