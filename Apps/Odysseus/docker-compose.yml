@@ -106,7 +106,6 @@ services:
 x-casaos:
   architectures:
     - amd64
-    - arm64
   main: odysseus
   author: sergio.sousa
   category: Productivity

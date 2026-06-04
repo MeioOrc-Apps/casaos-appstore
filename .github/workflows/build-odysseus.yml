@@ -31,9 +31,6 @@ jobs:
         id: upstream
         run: echo "sha=$(cd odysseus-src && git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -47,7 +44,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: odysseus-src
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
             ${{ env.DOCKERHUB_IMAGE }}:latest
