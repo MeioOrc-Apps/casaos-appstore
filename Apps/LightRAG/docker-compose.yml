@@ -1,0 +1,133 @@
+name: lightrag
+
+networks:
+  lightrag-network:
+    driver: bridge
+
+services:
+  lightrag:
+    image: ghcr.io/hkuds/lightrag:latest
+    restart: unless-stopped
+    networks:
+      - lightrag-network
+    ports:
+      - "9621:9621"
+    volumes:
+      - /DATA/AppData/lightrag/rag_storage:/app/data/rag_storage
+      - /DATA/AppData/lightrag/inputs:/app/data/inputs
+      - /DATA/AppData/lightrag/prompts:/app/data/prompts
+    environment:
+      # --- Paths ---
+      - WORKING_DIR=/app/data/rag_storage
+      - INPUT_DIR=/app/data/inputs
+      - PROMPT_DIR=/app/data/prompts
+      - HOST=0.0.0.0
+      - PORT=9621
+
+      # --- LLM: OpenRouter (default) ---
+      - LLM_BINDING=openai
+      - LLM_BINDING_HOST=https://openrouter.ai/api/v1
+      - LLM_BINDING_API_KEY=your_openrouter_api_key
+      - LLM_MODEL=google/gemini-2.5-flash
+
+      # --- LLM: Ollama local (alternative) ---
+      # - LLM_BINDING=ollama
+      # - LLM_BINDING_HOST=http://host.docker.internal:11434
+      # - LLM_MODEL=qwen2.5:14b
+      # - OLLAMA_LLM_NUM_CTX=32768
+
+      # --- Embedding: Ollama local (default) ---
+      - EMBEDDING_BINDING=ollama
+      - EMBEDDING_BINDING_HOST=http://host.docker.internal:11434
+      - EMBEDDING_MODEL=bge-m3:latest
+      - EMBEDDING_DIM=1024
+      - OLLAMA_EMBEDDING_NUM_CTX=8192
+
+      # --- Embedding: OpenAI (alternative) ---
+      # - EMBEDDING_BINDING=openai
+      # - EMBEDDING_BINDING_HOST=https://api.openai.com/v1
+      # - EMBEDDING_BINDING_API_KEY=your_openai_api_key
+      # - EMBEDDING_MODEL=text-embedding-3-large
+      # - EMBEDDING_DIM=3072
+
+      # --- Auth ---
+      - TOKEN_SECRET=change-me-to-a-random-string-at-least-32-chars
+      - AUTH_ACCOUNTS=admin:admin123
+
+      # --- Storage (file-based, no external DB needed) ---
+      - LIGHTRAG_KV_STORAGE=JsonKVStorage
+      - LIGHTRAG_DOC_STATUS_STORAGE=JsonDocStatusStorage
+      - LIGHTRAG_GRAPH_STORAGE=NetworkXStorage
+      - LIGHTRAG_VECTOR_STORAGE=NanoVectorDBStorage
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9621/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: lightrag
+  author: sergio.sousa
+  developer: HKUDS
+  category: Productivity
+  icon: https://cdn.jsdelivr.net/gh/selfhst/icons/png/lightrag.png
+  title:
+    custom: LightRAG
+    en_us: LightRAG
+  description:
+    en_us: |
+      LightRAG is a graph-enhanced Retrieval-Augmented Generation (RAG) engine.
+      Unlike traditional RAG systems that rely only on vector similarity, LightRAG
+      builds a knowledge graph from your documents — extracting entities and
+      relationships — and combines graph traversal with vector search for more
+      accurate, context-aware answers.
+
+      Upload your PDFs, Markdown files, DOCX, and more. Ask questions in natural
+      language. Get answers grounded in your own documents, with source citations.
+
+      Supports local LLMs via Ollama or cloud providers (OpenAI, OpenRouter,
+      Gemini, Azure). The knowledge graph and vector index persist locally —
+      your data never leaves your server unless you choose a cloud LLM.
+
+      Key features:
+      - Hybrid retrieval: knowledge graph + vector search
+      - Multiple query modes: naive, local, global, hybrid
+      - Web UI with knowledge graph visualization
+      - Ollama API emulation — add as a model source in Open WebUI
+      - MCP server support for AI coding agents
+      - REST API for document ingestion and querying
+  tagline:
+    en_us: Graph-enhanced RAG — smarter answers from your own documents
+  port_map: "9621"
+  index: /webui/
+  store_app_id: lightrag
+  tips:
+    before_install:
+      en_us: |
+        **Required before starting:**
+
+        1. Set `TOKEN_SECRET` to a random string (min 32 chars) — signs JWT tokens
+        2. Set `AUTH_ACCOUNTS` to `username:password` (default: `admin:admin123`)
+        3. Set `LLM_BINDING_API_KEY` to your OpenRouter API key (free at openrouter.ai)
+           — or switch to local Ollama: `LLM_BINDING=ollama`, `LLM_BINDING_HOST=http://host.docker.internal:11434`
+
+        **Embedding (default: Ollama local):**
+        Requires Ollama running with `bge-m3:latest` pulled (`ollama pull bge-m3`).
+        For cloud embeddings: set `EMBEDDING_BINDING=openai`, `EMBEDDING_BINDING_API_KEY`,
+        `EMBEDDING_MODEL=text-embedding-3-large`, `EMBEDDING_DIM=3072`.
+
+        ⚠️ **Do not change embedding settings after the first document is processed** —
+        the vector index will be incompatible with a different model/dimension.
+
+        **After installation:**
+        - Open the web UI at `http://[HOST-IP]:9621/webui/`
+        - Go to Documents → Upload files or place them in the inputs volume and click Scan
+        - Go to Query to ask questions about your documents
+        - The Knowledge Graph tab shows extracted entities and relationships
+        - To use as a model in Open WebUI: add `http://[HOST-IP]:9621` as an Ollama source
