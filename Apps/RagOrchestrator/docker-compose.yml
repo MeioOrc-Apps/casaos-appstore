@@ -1,0 +1,109 @@
+name: rag-orchestrator
+
+networks:
+  rag-network:
+    driver: bridge
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    networks:
+      - rag-network
+    environment:
+      POSTGRES_DB: orchestrator
+      POSTGRES_USER: orchestrator
+      POSTGRES_PASSWORD: orchestrator
+    volumes:
+      - /DATA/AppData/rag-orchestrator/db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "orchestrator"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    image: ghcr.io/sergiosjs/rag-orchestrator:latest
+    restart: unless-stopped
+    networks:
+      - rag-network
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://orchestrator:orchestrator@db:5432/orchestrator
+      DOCLING_BASE_URL: http://host.docker.internal:5001
+      LIGHTRAG_BASE_URL: http://host.docker.internal:9621
+      LIGHTRAG_USERNAME: admin
+      LIGHTRAG_PASSWORD: admin123
+      LIGHTRAG_INPUT_DIR: /data/inputs
+      DEFAULT_OWNER_USERNAME: default
+      SCAN_INTERVAL_MINUTES: "30"
+    volumes:
+      - /DATA/AppData/lightrag/inputs:/data/inputs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: app
+  author: sergio.sousa
+  category: Productivity
+  icon: https://cdn.jsdelivr.net/gh/selfhst/icons/svg/document-pipeline.svg
+  title:
+    custom: RAG Orchestrator
+    en_us: RAG Orchestrator
+  description:
+    en_us: |
+      RAG Orchestrator is an automated document ingestion pipeline for LightRAG.
+
+      It watches configured folders on the host, detects new or changed files,
+      converts documents (PDF, DOCX, PPTX, images) to Markdown via Docling,
+      writes them into LightRAG's input directory, and triggers a scan — all
+      on a configurable schedule (default: every 30 minutes).
+
+      Supported file types:
+      - Direct copy (no conversion): .md, .txt, .markdown
+      - Converted via Docling: .pdf, .docx, .pptx, .xlsx, .html, .png, .jpg, .jpeg, .gif, .bmp, .tiff
+
+      Content deduplication: files already processed with the same SHA-256 hash
+      are skipped, so re-scanning is safe and efficient.
+
+      Includes a simple web UI to manage watched folders, trigger manual syncs,
+      and view per-file processing status.
+  tagline:
+    en_us: Automated document pipeline — from your folders to LightRAG
+  port_map: "8080"
+  index: /
+  store_app_id: rag-orchestrator
+  tips:
+    before_install:
+      en_us: |
+        **Requirements before starting:**
+
+        1. **LightRAG** must be running (install from the CasaOS store).
+           Set `LIGHTRAG_BASE_URL` to `http://host.docker.internal:9621`
+           (or adjust if running on a different port).
+
+        2. **Set LightRAG credentials:** update `LIGHTRAG_USERNAME` and
+           `LIGHTRAG_PASSWORD` to match your LightRAG `AUTH_ACCOUNTS` setting.
+
+        3. **Docling** (optional) — required only for PDF/DOCX/image conversion.
+           Install the DoclingServe app and set `DOCLING_BASE_URL` accordingly.
+           Markdown and text files work without Docling.
+
+        **Shared volume with LightRAG:**
+        The `/DATA/AppData/lightrag/inputs` volume is shared between RAG Orchestrator
+        and LightRAG. RAG Orchestrator writes converted files there; LightRAG reads
+        them after each triggered scan. Do not change this path without updating
+        both apps.
+
+        **After installation:**
+        - Open the web UI at `http://[HOST-IP]:8080`
+        - Go to the Folders tab → add a folder path on the host to watch
+        - Go to Status → click "Sync Now" to run immediately
+        - The scheduler will also run every `SCAN_INTERVAL_MINUTES` minutes automatically
