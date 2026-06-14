@@ -56,7 +56,7 @@ Quando você lançar uma versão nova de um aplicativo (ex: mudou a imagem Docke
    ```yaml
    services:
      api:
-       image: ghcr.io/sergiosjs/art-catalog-api:v0.1.8 # <-- Atualize a tag aqui
+       image: sergiosjs/art-catalog-api:1.1.0 # <-- Atualize a tag aqui
    ```
 3. Faça o commit e o push:
    ```bash
