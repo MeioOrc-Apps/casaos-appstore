@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editores / IDEs (personalizações locais e por máquina)
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs e temporários
+*.log
+*.tmp
+*~
