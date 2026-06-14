@@ -1,0 +1,111 @@
+name: docling-serve
+
+networks:
+  docling-serve-network:
+    driver: bridge
+
+services:
+  docling-serve:
+    image: ghcr.io/docling-project/docling-serve-cpu:latest
+    container_name: docling-serve
+    restart: unless-stopped
+    networks:
+      - docling-serve-network
+    ports:
+      - "5001:5001"
+    volumes:
+      # cache dos modelos baixados — DEVE persistir, senão rebaixa a cada restart
+      - /DATA/AppData/docling-serve/cache:/opt/app-root/src/.cache
+      # pasta de entrada compartilhada com o pipeline (PDFs a converter); read-only pois o Docling só lê
+      - /DATA/AppData/lightrag/pdfs_raw:/data/input:ro
+    environment:
+      # habilita UI de teste em /ui e doc interativa em /docs
+      - DOCLING_SERVE_ENABLE_UI=1
+      # não carrega modelos no boot; carrega sob demanda no 1º request (idle leve, crítico em RAM limitada)
+      - DOCLING_SERVE_LOAD_MODELS_AT_BOOT=false
+      # 1 worker basta para uso de baixa frequência e economiza RAM
+      - UVICORN_WORKERS=1
+      # threads de CPU para parsing
+      - DOCLING_NUM_THREADS=4
+      # limite de páginas por documento (cobre PDFs grandes de ~300 págs)
+      - DOCLING_SERVE_MAX_NUM_PAGES=1000
+      # 200 MB por arquivo
+      - DOCLING_SERVE_MAX_FILE_SIZE=209715200
+      # direciona o cache de modelos do HuggingFace para dentro do volume persistente
+      - HF_HOME=/opt/app-root/src/.cache/huggingface
+      # host/porta explícitos (defaults da imagem; blinda contra mudança futura)
+      - DOCLING_SERVE_HOST=0.0.0.0
+      - DOCLING_SERVE_PORT=5001
+    healthcheck:
+      # usa python (garantido na imagem base python-312-c9s); curl/wget não são garantidos
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 5
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: docling-serve
+  author: sergio.sousa
+  developer: docling-project
+  category: Productivity
+  icon: https://raw.githubusercontent.com/docling-project/docling/main/docs/assets/logo.png
+  title:
+    custom: Docling Serve
+    en_us: Docling Serve
+  description:
+    en_us: |
+      Docling Serve is an HTTP API for Docling — a document conversion engine
+      that turns PDF, DOCX, PPTX, XLSX, HTML and images into clean Markdown,
+      JSON, or HTML.
+
+      Powered by specialized AI models for layout analysis (DocLayNet) and
+      table structure recognition (TableFormer), it runs efficiently on
+      commodity CPU hardware. Ideal as a parsing backend for RAG pipelines:
+      feed it documents, get back structured Markdown ready for indexing.
+
+      Key features:
+      - REST API at /v1/convert/source (stable v1)
+      - Built-in test UI at /ui and interactive docs at /docs
+      - Supports PDF, DOCX, PPTX, XLSX, HTML, images, AsciiDoc, Markdown
+      - Optional OCR for scanned documents (EasyOCR, Tesseract, RapidOCR)
+      - Table structure extraction and layout-aware parsing
+      - Models load on demand to keep idle memory low
+  tagline:
+    en_us: Document-to-Markdown conversion API for RAG pipelines
+  port_map: "5001"
+  index: /ui
+  store_app_id: docling-serve
+  tips:
+    before_install:
+      en_us: |
+        **No configuration required to start** — defaults work out of the box.
+
+        **First request is slow:** with models loading on demand, the very first
+        conversion downloads and loads the AI models (DocLayNet, TableFormer).
+        This can take 1–2 minutes. Subsequent conversions are fast. The model
+        cache persists in a volume, so this only happens once.
+
+        **Memory:** idle footprint is low (models not loaded). During conversion
+        it can use up to ~4 GB RAM. Avoid running large batch jobs alongside
+        other heavy services.
+
+        **After installation — verify it works:**
+        1. Open the test UI at `http://[HOST-IP]:5001/ui` and convert a sample PDF
+        2. Or check the API docs at `http://[HOST-IP]:5001/docs`
+        3. API test (PDF text, OCR off):
+           ```
+           curl -X POST 'http://[HOST-IP]:5001/v1/convert/source' \
+             -H 'Content-Type: application/json' \
+             -d '{"sources":[{"kind":"http","url":"https://arxiv.org/pdf/2501.17887"}],"options":{"to_formats":["md"],"do_ocr":false,"pdf_backend":"dlparse_v2"}}'
+           ```
+
+        **Known issue:** the `/v1/convert/file` (multipart) endpoint currently
+        ignores OCR parameters and always uses RapidOCR. Use `/v1/convert/source`
+        (path/URL based) for reliable OCR control.
+
+        **Pairs with LightRAG:** send PDFs here, get Markdown, then feed the
+        Markdown to LightRAG's input directory for indexing.

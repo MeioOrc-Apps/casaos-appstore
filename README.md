@@ -15,6 +15,17 @@ Este repositório serve como uma App Store customizada para o CasaOS e ZimaOS. E
 
 ---
 
+## 🗂️ Aplicativos disponíveis
+
+| App | Categoria | Porta | Descrição |
+| --- | --- | --- | --- |
+| **Art Catalog** | Media | `5173` | Catálogo pessoal de arte. |
+| **Odysseus** | Productivity | `7000` | Aplicação Odysseus. |
+| **LightRAG** | Productivity | `9621` | Motor de RAG com grafo de conhecimento sobre os seus documentos. |
+| **Docling Serve** | Productivity | `5001` | API de conversão de documentos (PDF/DOCX/PPTX/…) para Markdown, ideal como backend de parsing para pipelines RAG (ex.: alimenta o LightRAG). |
+
+---
+
 ## 📦 Como adicionar um novo aplicativo à loja
 
 Para adicionar um novo app (ex: `SaveState`), siga esta estrutura:
