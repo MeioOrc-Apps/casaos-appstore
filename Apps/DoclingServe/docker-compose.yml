@@ -16,10 +16,6 @@ services:
     volumes:
       # cache dos modelos baixados — DEVE persistir, senão rebaixa a cada restart
       - /DATA/AppData/docling-serve/cache:/opt/app-root/src/.cache
-      # storage principal do ZimaOS — montado read-only para o Docling ler ficheiros via kind:"file"
-      # o RAG Orchestrator envia o path do ficheiro; o Docling precisa de o ver no mesmo caminho
-      - /DATA:/DATA:ro
-      - /zimaos:/zimaos:ro
     environment:
       # habilita UI de teste em /ui e doc interativa em /docs
       - DOCLING_SERVE_ENABLE_UI=1
@@ -107,9 +103,9 @@ x-casaos:
              -d '{"sources":[{"kind":"http","url":"https://arxiv.org/pdf/2501.17887"}],"options":{"to_formats":["md"],"do_ocr":false,"pdf_backend":"dlparse_v2"}}'
            ```
 
-        **Known issue:** the `/v1/convert/file` (multipart) endpoint currently
-        ignores OCR parameters and always uses RapidOCR. Use `/v1/convert/source`
-        (path/URL based) for reliable OCR control.
+        **Sending files:** use `/v1/convert/source` with `file_sources` (base64)
+        for full option control (`do_ocr`, `pdf_backend`). The multipart endpoint
+        `/v1/convert/file` ignores OCR parameters.
 
         **Pairs with LightRAG:** send PDFs here, get Markdown, then feed the
         Markdown to LightRAG's input directory for indexing.
