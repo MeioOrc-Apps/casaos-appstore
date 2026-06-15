@@ -16,8 +16,10 @@ services:
     volumes:
       # cache dos modelos baixados — DEVE persistir, senão rebaixa a cada restart
       - /DATA/AppData/docling-serve/cache:/opt/app-root/src/.cache
-      # pasta de entrada compartilhada com o pipeline (PDFs a converter); read-only pois o Docling só lê
-      - /DATA/AppData/lightrag/pdfs_raw:/data/input:ro
+      # storage principal do ZimaOS — montado read-only para o Docling ler ficheiros via kind:"file"
+      # o RAG Orchestrator envia o path do ficheiro; o Docling precisa de o ver no mesmo caminho
+      - /DATA:/DATA:ro
+      - /zimaos:/zimaos:ro
     environment:
       # habilita UI de teste em /ui e doc interativa em /docs
       - DOCLING_SERVE_ENABLE_UI=1
