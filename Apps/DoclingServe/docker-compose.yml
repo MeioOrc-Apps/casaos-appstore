@@ -33,6 +33,8 @@ services:
       - HF_HOME=/opt/app-root/src/.cache/huggingface
       # cache de artefactos Docling (evita re-download dos pesos a cada arranque)
       - DOCLING_ARTIFACTS_PATH=/opt/app-root/src/.cache/docling-artifacts
+      # tempo máximo de espera por resposta inline (default 120s é curto para PDFs grandes)
+      - DOCLING_SERVE_MAX_SYNC_WAIT=600
       # host/porta explícitos (defaults da imagem; blinda contra mudança futura)
       - DOCLING_SERVE_HOST=0.0.0.0
       - DOCLING_SERVE_PORT=5001
@@ -100,12 +102,12 @@ x-casaos:
            ```
            curl -X POST 'http://[HOST-IP]:5001/v1/convert/source' \
              -H 'Content-Type: application/json' \
-             -d '{"sources":[{"kind":"http","url":"https://arxiv.org/pdf/2501.17887"}],"options":{"to_formats":["md"],"do_ocr":false,"pdf_backend":"dlparse_v2"}}'
+             -d '{"sources":[{"kind":"http","url":"https://arxiv.org/pdf/2501.17887"}],"options":{"to_formats":["md"],"do_ocr":false,"pdf_backend":"pypdfium2"}}'
            ```
 
-        **Sending files:** use `/v1/convert/source` with `file_sources` (base64)
-        for full option control (`do_ocr`, `pdf_backend`). The multipart endpoint
-        `/v1/convert/file` ignores OCR parameters.
+        **Sending files:** use `/v1/convert/source` with `sources[kind=file]` and
+        `base64_string` for full option control. The multipart endpoint
+        `/v1/convert/file` ignores `do_ocr` and `pdf_backend`.
 
         **Pairs with LightRAG:** send PDFs here, get Markdown, then feed the
         Markdown to LightRAG's input directory for indexing.
