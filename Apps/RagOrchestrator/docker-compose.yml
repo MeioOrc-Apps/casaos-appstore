@@ -23,7 +23,7 @@ services:
       retries: 5
 
   app:
-    image: sergiosjs/rag-orchestrator:1.0.5
+    image: sergiosjs/rag-orchestrator:1.0.6
     restart: unless-stopped
     networks:
       - rag-network
