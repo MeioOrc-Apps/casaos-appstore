@@ -31,8 +31,6 @@ services:
       - DOCLING_SERVE_MAX_FILE_SIZE=209715200
       # direciona o cache de modelos do HuggingFace para dentro do volume persistente
       - HF_HOME=/opt/app-root/src/.cache/huggingface
-      # cache de artefactos Docling (evita re-download dos pesos a cada arranque)
-      - DOCLING_ARTIFACTS_PATH=/opt/app-root/src/.cache/docling-artifacts
       # tempo máximo de espera por resposta inline (default 120s é curto para PDFs grandes)
       - DOCLING_SERVE_MAX_SYNC_WAIT=600
       # host/porta explícitos (defaults da imagem; blinda contra mudança futura)
