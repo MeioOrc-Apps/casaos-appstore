@@ -8,7 +8,7 @@ Este repositório serve como uma App Store customizada para o CasaOS e ZimaOS. E
 2. No canto superior direito da janela da App Store, clique no botão **Add Source** (Adicionar Fonte).
 3. Cole o link do arquivo `.zip` da branch principal deste repositório:
    ```text
-   https://github.com/SergioSJS/casaos-appstore/archive/refs/heads/main.zip
+   https://github.com/MeioOrc-Apps/casaos-appstore/archive/refs/heads/main.zip
    ```
 4. Clique em **Add**.
 5. Pronto! Agora você verá uma nova categoria na sua loja contendo os aplicativos deste repositório.
