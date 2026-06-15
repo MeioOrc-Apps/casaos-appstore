@@ -17,8 +17,8 @@ services:
       # cache dos modelos baixados — DEVE persistir, senão rebaixa a cada restart
       - /DATA/AppData/docling-serve/cache:/opt/app-root/src/.cache
     environment:
-      # habilita UI de teste em /ui e doc interativa em /docs
-      - DOCLING_SERVE_ENABLE_UI=1
+      # imagem cpu não tem gradio; UI em /ui fica indisponível — usar /docs (Swagger)
+      - DOCLING_SERVE_ENABLE_UI=0
       # não carrega modelos no boot; carrega sob demanda no 1º request (idle leve, crítico em RAM limitada)
       - DOCLING_SERVE_LOAD_MODELS_AT_BOOT=false
       # 1 worker basta para uso de baixa frequência e economiza RAM
@@ -79,7 +79,7 @@ x-casaos:
   tagline:
     en_us: Document-to-Markdown conversion API for RAG pipelines
   port_map: "5001"
-  index: /ui
+  index: /docs
   store_app_id: docling-serve
   tips:
     before_install:
