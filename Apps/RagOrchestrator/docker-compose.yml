@@ -23,7 +23,7 @@ services:
       retries: 5
 
   app:
-    image: sergiosjs/rag-orchestrator:1.0.6
+    image: sergiosjs/rag-orchestrator:1.1.0
     restart: unless-stopped
     networks:
       - rag-network
@@ -62,13 +62,19 @@ x-casaos:
       RAG Orchestrator is an automated document ingestion pipeline for LightRAG.
 
       It watches configured folders on the host, detects new or changed files,
-      converts documents (PDF, DOCX, PPTX, images) to Markdown via Docling,
-      writes them into LightRAG's input directory, and triggers a scan — all
-      on a configurable schedule (default: every 30 minutes).
+      converts documents to Markdown, writes them into LightRAG's input directory,
+      and triggers a scan — all on a configurable schedule (default: every 30 minutes).
 
-      Supported file types:
-      - Direct copy (no conversion): .md, .txt, .markdown
-      - Converted via Docling: .pdf, .docx, .pptx, .xlsx, .html, .png, .jpg, .jpeg, .gif, .bmp, .tiff
+      **v1.1.0 — multiformat routing (most conversions run in-process, no Docling needed):**
+
+      - **Direct copy** (text & code): .md, .txt, .rst, .py, .js, .ts, .go, .rs, .java,
+        .json, .yaml, .toml, .sql, .sh, .csv, .html (as source), and more
+      - **PDF digital** (in-process via pymupdf4llm): digital PDFs with a text layer —
+        fast, no network call, no Docling required
+      - **Office / HTML** (in-process via MarkItDown): .docx, .doc, .pptx, .ppt, .xlsx,
+        .html, .htm — no Docling required
+      - **Scanned PDF & images** (via Docling OCR): scanned PDFs, .png, .jpg, .jpeg,
+        .tiff, .bmp, .webp — Docling required only for these
 
       Content deduplication: files already processed with the same SHA-256 hash
       are skipped, so re-scanning is safe and efficient.
@@ -92,9 +98,10 @@ x-casaos:
         2. **Set LightRAG credentials:** update `LIGHTRAG_USERNAME` and
            `LIGHTRAG_PASSWORD` to match your LightRAG `AUTH_ACCOUNTS` setting.
 
-        3. **Docling** (optional) — required only for PDF/DOCX/image conversion.
-           Install the DoclingServe app and set `DOCLING_BASE_URL` accordingly.
-           Markdown and text files work without Docling.
+        3. **Docling** (optional) — required only for **scanned PDFs and images**.
+           Digital PDFs and Office files (DOCX, PPTX, XLSX, HTML) are converted
+           in-process without Docling. Install DoclingServe and set `DOCLING_BASE_URL`
+           only if you need OCR for scanned documents or image files.
 
         **Shared volume with LightRAG:**
         The `/DATA/AppData/lightrag/inputs` volume is shared between RAG Orchestrator
