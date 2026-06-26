@@ -23,7 +23,7 @@ services:
       retries: 5
 
   app:
-    image: sergiosjs/rag-orchestrator:1.1.0
+    image: sergiosjs/rag-orchestrator:1.1.1
     restart: unless-stopped
     networks:
       - rag-network
@@ -64,6 +64,11 @@ x-casaos:
       It watches configured folders on the host, detects new or changed files,
       converts documents to Markdown, writes them into LightRAG's input directory,
       and triggers a scan — all on a configurable schedule (default: every 30 minutes).
+
+      **v1.1.1 — bug fixes:**
+
+      - Fixed `ModuleNotFoundError: markitdown` on startup (Dockerfile deps were out of sync with pyproject.toml)
+      - Version display in UI now reads dynamically from pyproject.toml instead of hardcoded v0.1.0
 
       **v1.1.0 — multiformat routing (most conversions run in-process, no Docling needed):**
 
