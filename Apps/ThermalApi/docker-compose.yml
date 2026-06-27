@@ -4,6 +4,7 @@ services:
   thermal-api:
     image: sergiosjs/thermal-api:latest
     restart: unless-stopped
+    user: "1000:1000"
     ports:
       - "8666:8666"
     volumes:
