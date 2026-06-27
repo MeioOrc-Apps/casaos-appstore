@@ -1,0 +1,40 @@
+name: thermal-api
+
+services:
+  thermal-api:
+    image: sergiosjs/thermal-api:latest
+    restart: unless-stopped
+    ports:
+      - "6666:6666"
+    volumes:
+      - /sys/class/thermal:/sys/class/thermal:ro
+      - /DATA/AppData/thermal-api/logs:/app/logs
+    environment:
+      - THERMAL_ZONE_PATH=/sys/class/thermal/thermal_zone1/temp
+      - POLL_INTERVAL=1.0
+      - WINDOW_SIZE=10
+      - SPIKE_THRESHOLD=1.0
+      - RISE_THRESHOLD=0.2
+      - DROP_THRESHOLD=-0.2
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:6666/health', timeout=5).status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+x-casaos:
+  architectures:
+    - amd64
+  main: thermal-api
+  author: sergio.sousa
+  category: Utilities
+  icon: https://cdn-icons-png.flaticon.com/512/2534/2534063.png
+  title:
+    custom: Thermal API
+    en_us: Thermal API
+  description:
+    en_us: CPU temperature monitoring API with sliding window trend analysis. Exposes /temp for ESP32 PWM cooler control and /docs for browser inspection.
+  port_map: "6666"
+  index: /docs
+  store_app_id: thermal-api

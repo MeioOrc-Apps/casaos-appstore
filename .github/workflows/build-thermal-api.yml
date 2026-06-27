@@ -1,0 +1,43 @@
+name: Build and Push Thermal API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Apps/ThermalApi/**'
+      - '.github/workflows/build-thermal-api.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: build-thermal-api
+  cancel-in-progress: false
+
+env:
+  DOCKERHUB_IMAGE: sergiosjs/thermal-api
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./Apps/ThermalApi
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.DOCKERHUB_IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
