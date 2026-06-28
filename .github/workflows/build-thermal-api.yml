@@ -23,6 +23,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Extract version from docker-compose
+        id: version
+        run: |
+          tag=$(grep 'image: sergiosjs/thermal-api:' Apps/ThermalApi/docker-compose.yml | sed 's/.*://')
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -38,6 +44,8 @@ jobs:
           context: ./Apps/ThermalApi
           platforms: linux/amd64
           push: true
-          tags: ${{ env.DOCKERHUB_IMAGE }}:latest
+          tags: |
+            ${{ env.DOCKERHUB_IMAGE }}:${{ steps.version.outputs.tag }}
+            ${{ env.DOCKERHUB_IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
