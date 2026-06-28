@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from logging.handlers import TimedRotatingFileHandler
 
 from fastapi import FastAPI
+from pydantic import BaseModel, Field
 
 THERMAL_ZONE_PATH = os.getenv("THERMAL_ZONE_PATH", "/sys/class/thermal/thermal_zone1/temp")
 POLL_INTERVAL = float(os.getenv("POLL_INTERVAL", "1.0"))
@@ -54,16 +55,67 @@ async def lifespan(app: FastAPI):
         pass
 
 
-app = FastAPI(lifespan=lifespan, title="Thermal API")
+app = FastAPI(
+    lifespan=lifespan,
+    title="Thermal API",
+    description=(
+        "CPU temperature monitoring API for ZimaOS (Intel N100). "
+        "Reads `/sys/class/thermal` via a sliding window and classifies the thermal trend. "
+        "Designed to be polled by an ESP32 that controls a PWM cooler.\n\n"
+        "**Trend directions:** `subida_brusca` (rate ≥ SPIKE_THRESHOLD), "
+        "`subida_lenta` (rate ≥ RISE_THRESHOLD), `estavel`, `queda` (rate ≤ DROP_THRESHOLD)."
+    ),
+    version="1.0.0",
+)
+
+_mock_state: dict = {"temp_celsius": 45.0, "rate_of_change": 0.0}
 
 
-@app.get("/health")
+class MockTempUpdate(BaseModel):
+    temp_celsius: float = Field(
+        default=45.0,
+        description="Simulated CPU temperature in °C.",
+        examples=[45.0, 72.5, 90.0],
+    )
+    rate_of_change: float = Field(
+        default=0.0,
+        description=(
+            "Simulated rate of temperature change in °C/s. "
+            "Controls the direction classification: "
+            "≥ SPIKE_THRESHOLD → subida_brusca, "
+            "≥ RISE_THRESHOLD → subida_lenta, "
+            "≤ DROP_THRESHOLD → queda, "
+            "otherwise → estavel."
+        ),
+        examples=[0.0, 0.5, 1.5, -0.5],
+    )
+
+
+def _classify(rate: float) -> str:
+    if rate >= SPIKE_THRESHOLD:
+        return "subida_brusca"
+    elif rate >= RISE_THRESHOLD:
+        return "subida_lenta"
+    elif rate <= DROP_THRESHOLD:
+        return "queda"
+    return "estavel"
+
+
+@app.get("/health", summary="Health check", tags=["Infra"])
 def health():
+    """Always returns 200. Used by the Docker healthcheck."""
     return {"status": "ok"}
 
 
-@app.get("/temp")
+@app.get("/temp", summary="Current temperature + trend", tags=["Thermal"])
 def temp():
+    """
+    Returns the current CPU temperature and the thermal trend computed over the
+    sliding window (`WINDOW_SIZE` samples, polled every `POLL_INTERVAL` seconds).
+
+    - **warming_up**: returned while the window is filling up (first `WINDOW_SIZE` seconds).
+    - **online**: window is full; includes `rate_of_change` (°C/s) and `direction`.
+    """
     if len(window) < WINDOW_SIZE:
         return {"status": "warming_up", "samples": len(window), "required": WINDOW_SIZE}
 
@@ -73,16 +125,6 @@ def temp():
 
     elapsed = last_ts - first_ts
     rate = (last_temp - first_temp) / elapsed if elapsed > 0 else 0.0
-
-    if rate >= SPIKE_THRESHOLD:
-        direction = "subida_brusca"
-    elif rate >= RISE_THRESHOLD:
-        direction = "subida_lenta"
-    elif rate <= DROP_THRESHOLD:
-        direction = "queda"
-    else:
-        direction = "estavel"
-
     avg = sum(t for t, _ in samples) / len(samples)
 
     return {
@@ -97,6 +139,56 @@ def temp():
         },
         "trend": {
             "rate_of_change": round(rate, 3),
-            "direction": direction,
+            "direction": _classify(rate),
         },
     }
+
+
+@app.get("/temp-test", summary="Mock temperature + trend (for hardware testing)", tags=["Testing"])
+def temp_test_get():
+    """
+    Returns the same JSON structure as `/temp` but using mock values set via `PUT /temp-test`.
+
+    Use this endpoint to test the ESP32 hardware and PWM logic without needing to
+    physically heat the CPU. Set any `rate_of_change` to trigger a specific `direction`
+    and verify the cooler responds correctly.
+
+    Defaults to `temp_celsius=45.0` and `rate_of_change=0.0` (direction: `estavel`)
+    until overridden.
+    """
+    temp_c = _mock_state["temp_celsius"]
+    rate = _mock_state["rate_of_change"]
+    return {
+        "status": "online",
+        "current": {
+            "temp_celsius": temp_c,
+            "timestamp": round(time.time(), 3),
+        },
+        "window_stats": {
+            "window_size_seconds": round(WINDOW_SIZE * POLL_INTERVAL, 2),
+            "average_temp": temp_c,
+        },
+        "trend": {
+            "rate_of_change": rate,
+            "direction": _classify(rate),
+        },
+    }
+
+
+@app.put("/temp-test", summary="Set mock temperature values", tags=["Testing"])
+def temp_test_set(body: MockTempUpdate):
+    """
+    Updates the mock state used by `GET /temp-test`.
+
+    Send any combination of `temp_celsius` and `rate_of_change` to simulate a specific
+    thermal scenario. The `direction` field in the response will be classified using the
+    same thresholds as the real `/temp` endpoint.
+
+    Example — simulate a spike to trigger `subida_brusca`:
+    ```json
+    { "temp_celsius": 85.0, "rate_of_change": 1.5 }
+    ```
+    """
+    _mock_state["temp_celsius"] = body.temp_celsius
+    _mock_state["rate_of_change"] = body.rate_of_change
+    return {"status": "ok", "temp_celsius": body.temp_celsius, "rate_of_change": body.rate_of_change}
