@@ -5,11 +5,16 @@ import time
 from collections import deque
 from contextlib import asynccontextmanager
 from logging.handlers import TimedRotatingFileHandler
+from pathlib import Path
 
-from fastapi import FastAPI
+import httpx
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 THERMAL_ZONE_PATH = os.getenv("THERMAL_ZONE_PATH", "/sys/class/thermal/thermal_zone1/temp")
+ESP32_URL = os.getenv("ESP32_URL", "http://192.168.3.114/status")
+THERMAL_URL = os.getenv("THERMAL_URL", "/temp")
 POLL_INTERVAL = float(os.getenv("POLL_INTERVAL", "1.0"))
 WINDOW_SIZE = int(os.getenv("WINDOW_SIZE", "10"))
 SPIKE_THRESHOLD = float(os.getenv("SPIKE_THRESHOLD", "1.0"))
@@ -65,7 +70,7 @@ app = FastAPI(
         "**Trend directions:** `subida_brusca` (rate ≥ SPIKE_THRESHOLD), "
         "`subida_lenta` (rate ≥ RISE_THRESHOLD), `estavel`, `queda` (rate ≤ DROP_THRESHOLD)."
     ),
-    version="1.0.0",
+    version="1.1.0",
 )
 
 _mock_state: dict = {"temp_celsius": 45.0, "rate_of_change": 0.0}
@@ -173,6 +178,33 @@ def temp_test_get():
             "direction": _classify(rate),
         },
     }
+
+
+@app.get("/", include_in_schema=False)
+def dashboard():
+    return FileResponse(Path(__file__).parent / "static" / "index.html")
+
+
+@app.get("/config", summary="Frontend configuration defaults", tags=["Infra"])
+def config():
+    """Returns the URLs the frontend should poll by default."""
+    return {"thermal_url": THERMAL_URL, "esp32_url": "/esp32/status"}
+
+
+@app.get("/esp32/status", summary="ESP32 status proxy", tags=["Infra"])
+async def esp32_proxy():
+    """Proxies to the ESP32 at ESP32_URL env var to avoid browser CORS restrictions."""
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(ESP32_URL, timeout=5.0)
+            r.raise_for_status()
+            return r.json()
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="ESP32 timeout")
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail="ESP32 error")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
 
 
 @app.put("/temp-test", summary="Set mock temperature values", tags=["Testing"])

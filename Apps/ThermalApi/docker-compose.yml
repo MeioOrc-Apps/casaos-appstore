@@ -2,7 +2,7 @@ name: thermal-api
 
 services:
   thermal-api:
-    image: sergiosjs/thermal-api:1.0.1
+    image: sergiosjs/thermal-api:1.1.0
     restart: unless-stopped
     ports:
       - "8666:8666"
@@ -16,6 +16,8 @@ services:
       - SPIKE_THRESHOLD=1.0
       - RISE_THRESHOLD=0.2
       - DROP_THRESHOLD=-0.2
+      - ESP32_URL=http://192.168.3.114/status
+      - THERMAL_URL=/temp
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8666/health', timeout=5).status == 200 else 1)"]
       interval: 10s
@@ -36,5 +38,5 @@ x-casaos:
   description:
     en_us: CPU temperature monitoring API with sliding window trend analysis. Exposes /temp for ESP32 PWM cooler control and /docs for browser inspection.
   port_map: "8666"
-  index: /docs
+  index: /
   store_app_id: thermal-api
