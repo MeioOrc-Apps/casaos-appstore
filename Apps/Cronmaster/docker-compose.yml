@@ -1,0 +1,46 @@
+name: cronmaster
+
+services:
+  cronmaster:
+    image: ghcr.io/fccview/cronmaster:latest
+    container_name: cronmaster
+    user: "root"
+    pid: "host"
+    privileged: true
+    init: true
+    restart: unless-stopped
+    ports:
+      - "3013:3000"
+    environment:
+      AUTH_PASSWORD: "TROQUE_ANTES_DE_USAR"
+      HOST_CRONTAB_USER: root
+      TZ: America/Sao_Paulo
+      NODE_ENV: production
+      NEXT_PUBLIC_CLOCK_UPDATE_INTERVAL: "30000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /DATA/AppData/cronmaster/scripts:/app/scripts
+      - /DATA/AppData/cronmaster/data:/app/data
+      - /DATA/AppData/cronmaster/snippets:/app/snippets
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: cronmaster
+  author: sergio.sousa
+  category: Utilities
+  icon: ""
+  title:
+    custom: Cronmaster
+    en_us: Cronmaster
+  description:
+    en_us: >-
+      Visual web UI for managing cron jobs with human-readable syntax, live log
+      streaming, Bash script editor, and Docker container control via socket.
+      Schedule docker start/stop and any shell task visually. Requires
+      privileged mode and host PID namespace to edit crontabs in real time.
+      Change AUTH_PASSWORD before first use. Use only on trusted networks.
+  port_map: "3013"
+  index: /
+  store_app_id: cronmaster
