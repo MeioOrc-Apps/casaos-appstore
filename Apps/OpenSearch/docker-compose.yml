@@ -6,38 +6,21 @@ networks:
 
 services:
   opensearch:
-    cpu_shares: 90
-    command: []
-    deploy:
-      resources:
-        limits:
-          memory: 2147483648
-        reservations:
-          devices: []
+    image: opensearchproject/opensearch:latest
+    restart: unless-stopped
     environment:
       - discovery.type=single-node
       - bootstrap.memory_lock=true
       - DISABLE_SECURITY_PLUGIN=true
       - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
-    extra_hosts:
-      - host.docker.internal:host-gateway
     healthcheck:
-      test:
-        - CMD-SHELL
-        - curl -sf http://localhost:9200/_cluster/health || exit 1
-      timeout: 10s
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
       interval: 30s
+      timeout: 10s
       retries: 5
-      start_period: 1m0s
-    image: opensearchproject/opensearch:latest
-    labels:
-      icon: https://cdn.jsdelivr.net/gh/selfhst/icons/png/opensearch.png
+      start_period: 60s
     ports:
-      - mode: ingress
-        target: 9200
-        published: "9200"
-        protocol: tcp
-    restart: unless-stopped
+      - "9200:9200"
     ulimits:
       memlock:
         soft: -1
@@ -46,54 +29,30 @@ services:
         soft: 65536
         hard: 65536
     volumes:
-      - type: bind
-        source: /DATA/AppData/opensearch/data
-        target: /usr/share/opensearch/data
-        bind:
-          create_host_path: true
-    devices: []
-    cap_add: []
+      - /DATA/AppData/opensearch/data:/usr/share/opensearch/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - opensearch-network
-    privileged: false
 
   opensearch-dashboards:
-    cpu_shares: 90
-    command: []
-    deploy:
-      resources:
-        limits:
-          memory: 1073741824
-        reservations:
-          devices: []
-    environment:
-      - 'OPENSEARCH_HOSTS=["http://opensearch:9200"]'
-      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
-    extra_hosts:
-      - host.docker.internal:host-gateway
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - curl -sf http://localhost:5601/api/status || exit 1
-      timeout: 10s
-      interval: 30s
-      retries: 5
-      start_period: 1m0s
     image: opensearchproject/opensearch-dashboards:latest
-    labels:
-      icon: https://cdn.jsdelivr.net/gh/selfhst/icons/png/opensearch.png
-    ports:
-      - mode: ingress
-        target: 5601
-        published: "5601"
-        protocol: tcp
     restart: unless-stopped
-    volumes: []
-    devices: []
-    cap_add: []
+    environment:
+      - OPENSEARCH_HOSTS=http://opensearch:9200
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5601/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    ports:
+      - "5601:5601"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - opensearch-network
-    privileged: false
     depends_on:
       opensearch:
         condition: service_healthy
@@ -156,14 +115,13 @@ x-casaos:
         `opensearch-dashboards`, set `OPENSEARCH_INITIAL_ADMIN_PASSWORD` to
         a strong password (OpenSearch 2.12+ requires this once security is
         active — min 8 chars, upper/lowercase, number, symbol), switch
-        `OPENSEARCH_HOSTS` to `https://`, and change `scheme` to `https`
-        above.
+        `OPENSEARCH_HOSTS` to `https://opensearch:9200`, and change `scheme`
+        to `https` above.
 
         **Memory:** heap is capped at 1GB
         (`OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g`), sized for a personal
-        document library, not production search load. The 2GB/1GB
-        container memory limits leave headroom above the heap for JVM
-        overhead. Raise both if indexing much larger datasets.
+        document library, not production search load. Raise if indexing
+        much larger datasets.
 
         **After installation:**
         - Open OpenSearch Dashboards at `http://[HOST-IP]:5601`
