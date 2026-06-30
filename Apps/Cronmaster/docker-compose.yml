@@ -30,7 +30,7 @@ x-casaos:
   main: cronmaster
   author: sergio.sousa
   category: Utilities
-  icon: ""
+  icon: "https://p.kagi.com/proxy/cronmaster.svg?c=Ht7STCpQNSWfd3kRFbtSkWf8Pcr5PFOvhmHGHjMebNfAR5-p3fbakoCUV2c9E8ctmTEywqZJYGckkRL1AhzMLDLFRWtPnu6-kUg1eHlrdQdc81NgRYofksUjVB1dKWBI"
   title:
     custom: Cronmaster
     en_us: Cronmaster

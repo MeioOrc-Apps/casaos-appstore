@@ -1,6 +1,6 @@
 # CasaOS / ZimaOS Custom App Store
 
-Este repositório serve como uma App Store customizada para o CasaOS e ZimaOS. Ele centraliza todos os aplicativos pessoais (como o Art Catalog, Save State, etc.) para que possam ser instalados e atualizados com 1 clique diretamente pela interface do sistema.
+Este repositório serve como uma App Store customizada para o CasaOS e ZimaOS. Ele centraliza todos os aplicativos pessoais para que possam ser instalados e atualizados com 1 clique diretamente pela interface do sistema.
 
 ## 🚀 Como instalar esta App Store no seu ZimaOS
 
@@ -19,10 +19,13 @@ Este repositório serve como uma App Store customizada para o CasaOS e ZimaOS. E
 
 | App | Categoria | Porta | Descrição |
 | --- | --- | --- | --- |
-| **Art Catalog** | Media | `5173` | Catálogo pessoal de arte. |
-| **Odysseus** | Productivity | `7000` | Aplicação Odysseus. |
+| **Art Catalog** | Media | `5173` | Catálogo pessoal de arte e moodboard. |
+| **Odysseus** | Productivity | `7000` | Workspace AI self-hosted: chat, agentes, pesquisa profunda, memória, e-mail e notas. |
 | **LightRAG** | Productivity | `9621` | Motor de RAG com grafo de conhecimento sobre os seus documentos. |
-| **Docling Serve** | Productivity | `5001` | API de conversão de documentos (PDF/DOCX/PPTX/…) para Markdown, ideal como backend de parsing para pipelines RAG (ex.: alimenta o LightRAG). |
+| **Docling Serve** | Productivity | `5001` | API de conversão de documentos (PDF/DOCX/PPTX/…) para Markdown — backend de parsing para pipelines RAG. |
+| **RAG Orchestrator** | Productivity | `8080` | Pipeline de ingestão automática de documentos para LightRAG. Monitora pastas, converte e indexa no schedule. |
+| **Thermal API** | Utilities | `8666` | API de monitoramento de temperatura CPU com análise de tendência. Proxy para controle PWM de cooler via ESP32. |
+| **Cronmaster** | Utilities | `3013` | Gerenciador visual de cron jobs com editor de scripts Bash e controle de containers Docker via socket. |
 
 ---
 
