@@ -26,6 +26,7 @@ Este repositório serve como uma App Store customizada para o CasaOS e ZimaOS. E
 | **RAG Orchestrator** | Productivity | `8080` | Pipeline de ingestão automática de documentos para LightRAG. Monitora pastas, converte e indexa no schedule. |
 | **Thermal API** | Utilities | `8666` | API de monitoramento de temperatura CPU com análise de tendência. Proxy para controle PWM de cooler via ESP32. |
 | **Cronmaster** | Utilities | `3013` | Gerenciador visual de cron jobs com editor de scripts Bash e controle de containers Docker via socket. |
+| **OpenSearch** | Productivity | `5601` / `9200` | Motor de busca full-text (BM25) com interface visual via Dashboards. Fork open-source do Elasticsearch, Apache 2.0. |
 
 ---
 

@@ -1,0 +1,174 @@
+name: opensearch
+
+networks:
+  opensearch-network:
+    driver: bridge
+
+services:
+  opensearch:
+    cpu_shares: 90
+    command: []
+    deploy:
+      resources:
+        limits:
+          memory: 2147483648
+        reservations:
+          devices: []
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - DISABLE_SECURITY_PLUGIN=true
+      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -sf http://localhost:9200/_cluster/health || exit 1
+      timeout: 10s
+      interval: 30s
+      retries: 5
+      start_period: 1m0s
+    image: opensearchproject/opensearch:latest
+    labels:
+      icon: https://cdn.jsdelivr.net/gh/selfhst/icons/png/opensearch.png
+    ports:
+      - mode: ingress
+        target: 9200
+        published: "9200"
+        protocol: tcp
+    restart: unless-stopped
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - type: bind
+        source: /DATA/AppData/opensearch/data
+        target: /usr/share/opensearch/data
+        bind:
+          create_host_path: true
+    devices: []
+    cap_add: []
+    networks:
+      - opensearch-network
+    privileged: false
+
+  opensearch-dashboards:
+    cpu_shares: 90
+    command: []
+    deploy:
+      resources:
+        limits:
+          memory: 1073741824
+        reservations:
+          devices: []
+    environment:
+      - 'OPENSEARCH_HOSTS=["http://opensearch:9200"]'
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -sf http://localhost:5601/api/status || exit 1
+      timeout: 10s
+      interval: 30s
+      retries: 5
+      start_period: 1m0s
+    image: opensearchproject/opensearch-dashboards:latest
+    labels:
+      icon: https://cdn.jsdelivr.net/gh/selfhst/icons/png/opensearch.png
+    ports:
+      - mode: ingress
+        target: 5601
+        published: "5601"
+        protocol: tcp
+    restart: unless-stopped
+    volumes: []
+    devices: []
+    cap_add: []
+    networks:
+      - opensearch-network
+    privileged: false
+    depends_on:
+      opensearch:
+        condition: service_healthy
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  author: sergio.sousa
+  category: Productivity
+  description:
+    en_us: >
+      OpenSearch is an open-source, Apache 2.0-licensed search and analytics
+      engine — a community-governed fork of Elasticsearch 7.10.2, maintained
+      by the OpenSearch Software Foundation under the Linux Foundation.
+
+      Index documents and search them with BM25 relevance ranking, faceted
+      filtering, and aggregations. OpenSearch Dashboards gives you a visual
+      interface to explore indexed data and build queries without writing
+      API calls by hand.
+
+      Key features:
+      - Full-text search with BM25 relevance scoring out of the box
+      - REST API, query DSL largely compatible with pre-2021 Elasticsearch
+      - Visual data exploration and query console via OpenSearch Dashboards
+      - Single-node mode, sized here for personal/homelab use
+      - Apache 2.0, vendor-neutral governance — no single-company licensing
+        risk
+  developer: OpenSearch Project
+  icon: https://cdn.jsdelivr.net/gh/selfhst/icons/png/opensearch.png
+  index: /
+  main: opensearch-dashboards
+  port_map: "5601"
+  scheme: http
+  store_app_id: opensearch
+  tagline:
+    en_us: Open-source search and analytics, free of single-vendor lock-in
+  tips:
+    before_install:
+      en_us: >
+        **Required before starting (host-level, can't be set from this
+        compose file):**
+
+        OpenSearch refuses to boot unless the host kernel allows enough
+        memory-mapped areas. SSH into ZimaOS and run, before first install:
+
+        ```
+        sudo sysctl -w vm.max_map_count=262144
+        echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf
+        ```
+
+        **Security is disabled by default in this spec** (no TLS, no auth)
+        — sized for homelab use behind Tailscale/your private network only,
+        matching how this catalog's other apps are typically run. Do not
+        expose port 9200 or 5601 publicly with this default config.
+
+        **If you ever need it exposed beyond your private network:**
+        remove `DISABLE_SECURITY_PLUGIN=true` from the `opensearch` service
+        and `DISABLE_SECURITY_DASHBOARDS_PLUGIN=true` from
+        `opensearch-dashboards`, set `OPENSEARCH_INITIAL_ADMIN_PASSWORD` to
+        a strong password (OpenSearch 2.12+ requires this once security is
+        active — min 8 chars, upper/lowercase, number, symbol), switch
+        `OPENSEARCH_HOSTS` to `https://`, and change `scheme` to `https`
+        above.
+
+        **Memory:** heap is capped at 1GB
+        (`OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g`), sized for a personal
+        document library, not production search load. The 2GB/1GB
+        container memory limits leave headroom above the heap for JVM
+        overhead. Raise both if indexing much larger datasets.
+
+        **After installation:**
+        - Open OpenSearch Dashboards at `http://[HOST-IP]:5601`
+        - The OpenSearch REST API is available at `http://[HOST-IP]:9200`
+        - No login required with the default (security-disabled) config
+  title:
+    custom: OpenSearch
+    en_us: OpenSearch
