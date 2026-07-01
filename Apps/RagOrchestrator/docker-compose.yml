@@ -22,23 +22,6 @@ services:
       timeout: 5s
       retries: 5
 
-  opensearch:
-    image: opensearchproject/opensearch:3.0.0
-    restart: unless-stopped
-    networks:
-      - rag-network
-    environment:
-      - discovery.type=single-node
-      - DISABLE_SECURITY_PLUGIN=true
-      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
-    volumes:
-      - /DATA/AppData/rag-orchestrator/opensearch:/usr/share/opensearch/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health | grep -qv '\"status\":\"red\"'"]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-
   app:
     image: ghcr.io/meiorc-apps/rag-orchestrator:latest
     restart: unless-stopped
@@ -47,15 +30,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      opensearch:
-        condition: service_healthy
     ports:
       - "8080:8000"
       - "9700:9700"
     environment:
       DATABASE_URL: postgresql+psycopg://orchestrator:orchestrator@db:5432/orchestrator
       DOCLING_BASE_URL: http://host.docker.internal:5001
-      OPENSEARCH_HOST: http://opensearch:9200
+      OPENSEARCH_HOST: http://host.docker.internal:9200
       OPENSEARCH_INDEX_PREFIX: rag
       DEFAULT_OWNER_USERNAME: default
       INPUT_DIR: /data/inputs
@@ -120,15 +101,20 @@ x-casaos:
       en_us: |
         **Requirements before starting:**
 
-        1. **Docling** (optional) — required only for **scanned PDFs and images**.
-           Digital PDFs and Office files (DOCX, PPTX, XLSX) are converted
-           in-process without Docling. Set `DOCLING_BASE_URL` only if you need OCR.
+        1. **OpenSearch** must be running — install the **OpenSearch** app from
+           this store first. RAG Orchestrator connects to it via
+           `http://host.docker.internal:9200` (the default `OPENSEARCH_HOST`).
+           No changes needed if you installed OpenSearch with default settings.
 
         2. **Ollama** (optional) — required for LLM translation (PT→EN) and
            query enrichment. Set `OLLAMA_HOST` to your Ollama instance.
-           If not configured, Portuguese content is indexed untranslated.
+           If not configured, Portuguese content is indexed untranslated and
+           query enrichment is skipped.
 
-        **OpenSearch** is included as a bundled service — no separate installation needed.
+        3. **Docling** (optional) — required only for **scanned PDFs and images**.
+           Digital PDFs and Office files (DOCX, PPTX, XLSX) are converted
+           in-process without Docling. Set `DOCLING_BASE_URL` only if you
+           need OCR for scanned documents or image files.
 
         **After installation:**
         - Open the web UI at `http://[HOST-IP]:8080`
