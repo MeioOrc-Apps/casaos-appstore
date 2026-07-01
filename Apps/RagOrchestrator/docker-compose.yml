@@ -44,10 +44,6 @@ services:
       PARSE_INTERVAL_MINUTES: "5"
       TRANSLATE_INTERVAL_MINUTES: "5"
       INDEX_INTERVAL_MINUTES: "5"
-      MAX_TRANSLATION_RETRIES: "3"
-      CHUNK_SIZE: "1000"
-      CHUNK_OVERLAP: "100"
-      ENRICHMENT_MODEL: local:qwen2.5:7b
       OLLAMA_HOST: http://host.docker.internal:11434
       MCP_PORT: "9700"
     volumes:
