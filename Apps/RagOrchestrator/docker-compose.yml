@@ -22,27 +22,55 @@ services:
       timeout: 5s
       retries: 5
 
+  opensearch:
+    image: opensearchproject/opensearch:3.0.0
+    restart: unless-stopped
+    networks:
+      - rag-network
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - /DATA/AppData/rag-orchestrator/opensearch:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health | grep -qv '\"status\":\"red\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
   app:
-    image: sergiosjs/rag-orchestrator:1.1.1
+    image: ghcr.io/meiorc-apps/rag-orchestrator:latest
     restart: unless-stopped
     networks:
       - rag-network
     depends_on:
       db:
         condition: service_healthy
+      opensearch:
+        condition: service_healthy
     ports:
       - "8080:8000"
+      - "9700:9700"
     environment:
       DATABASE_URL: postgresql+psycopg://orchestrator:orchestrator@db:5432/orchestrator
       DOCLING_BASE_URL: http://host.docker.internal:5001
-      LIGHTRAG_BASE_URL: http://host.docker.internal:9621
-      LIGHTRAG_USERNAME: admin
-      LIGHTRAG_PASSWORD: admin123
-      LIGHTRAG_INPUT_DIR: /data/inputs
+      OPENSEARCH_HOST: http://opensearch:9200
+      OPENSEARCH_INDEX_PREFIX: rag
       DEFAULT_OWNER_USERNAME: default
-      SCAN_INTERVAL_MINUTES: "30"
+      INPUT_DIR: /data/inputs
+      SCAN_INTERVAL_MINUTES: "15"
+      PARSE_INTERVAL_MINUTES: "5"
+      TRANSLATE_INTERVAL_MINUTES: "5"
+      INDEX_INTERVAL_MINUTES: "5"
+      MAX_TRANSLATION_RETRIES: "3"
+      CHUNK_SIZE: "1000"
+      CHUNK_OVERLAP: "100"
+      ENRICHMENT_MODEL: local:qwen2.5:7b
+      OLLAMA_HOST: http://host.docker.internal:11434
+      MCP_PORT: "9700"
     volumes:
-      - /DATA/AppData/lightrag/inputs:/data/inputs
+      - /DATA/AppData/rag-orchestrator/inputs:/data/inputs
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -59,35 +87,31 @@ x-casaos:
     en_us: RAG Orchestrator
   description:
     en_us: |
-      RAG Orchestrator is an automated document ingestion pipeline for LightRAG.
+      RAG Orchestrator is an automated document ingestion and search pipeline
+      powered by OpenSearch BM25 full-text search.
 
-      It watches configured folders on the host, detects new or changed files,
-      converts documents to Markdown, writes them into LightRAG's input directory,
-      and triggers a scan — all on a configurable schedule (default: every 30 minutes).
+      It watches configured folders, detects new or changed files, converts
+      documents to text, chunks and language-detects the content, optionally
+      translates Portuguese to English via a local LLM (Ollama), and indexes
+      everything into OpenSearch — all on a configurable schedule.
 
-      **v1.1.1 — bug fixes:**
+      **Features:**
+      - Multi-format ingestion: Markdown, text, code, PDF, DOCX, PPTX, XLSX, images
+      - BM25 full-text search across Portuguese and English content
+      - LLM query enrichment (optional, via Ollama or OpenRouter)
+      - MCP server on port 9700 for AI assistant integration
+      - REST API for search, file management, and admin operations
+      - Simple web UI for folder management and sync status
 
-      - Fixed `ModuleNotFoundError: markitdown` on startup (Dockerfile deps were out of sync with pyproject.toml)
-      - Version display in UI now reads dynamically from pyproject.toml instead of hardcoded v0.1.0
-
-      **v1.1.0 — multiformat routing (most conversions run in-process, no Docling needed):**
-
-      - **Direct copy** (text & code): .md, .txt, .rst, .py, .js, .ts, .go, .rs, .java,
-        .json, .yaml, .toml, .sql, .sh, .csv, .html (as source), and more
-      - **PDF digital** (in-process via pymupdf4llm): digital PDFs with a text layer —
-        fast, no network call, no Docling required
-      - **Office / HTML** (in-process via MarkItDown): .docx, .doc, .pptx, .ppt, .xlsx,
-        .html, .htm — no Docling required
-      - **Scanned PDF & images** (via Docling OCR): scanned PDFs, .png, .jpg, .jpeg,
-        .tiff, .bmp, .webp — Docling required only for these
-
-      Content deduplication: files already processed with the same SHA-256 hash
-      are skipped, so re-scanning is safe and efficient.
-
-      Includes a simple web UI to manage watched folders, trigger manual syncs,
-      and view per-file processing status.
+      **v2.0 — OpenSearch module (replaces LightRAG):**
+      - Chunking + language detection (langdetect, middle-sample strategy)
+      - Translation pipeline (PT→EN via Ollama or OpenRouter)
+      - BM25 indexing with PT+EN analyzers
+      - Search API with optional LLM enrichment and fallback
+      - Admin API (stats, retry-failed, reindex-all, forcemerge)
+      - MCP server with search, list_files, get_stats, reindex_file tools
   tagline:
-    en_us: Automated document pipeline — from your folders to LightRAG
+    en_us: Automated document pipeline — watch, chunk, translate, search
   port_map: "8080"
   index: /
   store_app_id: rag-orchestrator
@@ -96,26 +120,18 @@ x-casaos:
       en_us: |
         **Requirements before starting:**
 
-        1. **LightRAG** must be running (install from the CasaOS store).
-           Set `LIGHTRAG_BASE_URL` to `http://host.docker.internal:9621`
-           (or adjust if running on a different port).
+        1. **Docling** (optional) — required only for **scanned PDFs and images**.
+           Digital PDFs and Office files (DOCX, PPTX, XLSX) are converted
+           in-process without Docling. Set `DOCLING_BASE_URL` only if you need OCR.
 
-        2. **Set LightRAG credentials:** update `LIGHTRAG_USERNAME` and
-           `LIGHTRAG_PASSWORD` to match your LightRAG `AUTH_ACCOUNTS` setting.
+        2. **Ollama** (optional) — required for LLM translation (PT→EN) and
+           query enrichment. Set `OLLAMA_HOST` to your Ollama instance.
+           If not configured, Portuguese content is indexed untranslated.
 
-        3. **Docling** (optional) — required only for **scanned PDFs and images**.
-           Digital PDFs and Office files (DOCX, PPTX, XLSX, HTML) are converted
-           in-process without Docling. Install DoclingServe and set `DOCLING_BASE_URL`
-           only if you need OCR for scanned documents or image files.
-
-        **Shared volume with LightRAG:**
-        The `/DATA/AppData/lightrag/inputs` volume is shared between RAG Orchestrator
-        and LightRAG. RAG Orchestrator writes converted files there; LightRAG reads
-        them after each triggered scan. Do not change this path without updating
-        both apps.
+        **OpenSearch** is included as a bundled service — no separate installation needed.
 
         **After installation:**
         - Open the web UI at `http://[HOST-IP]:8080`
-        - Go to the Folders tab → add a folder path on the host to watch
+        - Go to Folders → add host paths to watch
         - Go to Status → click "Sync Now" to run immediately
-        - The scheduler will also run every `SCAN_INTERVAL_MINUTES` minutes automatically
+        - MCP server available at `http://[HOST-IP]:9700` for AI assistant tools
