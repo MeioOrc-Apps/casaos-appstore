@@ -23,7 +23,7 @@ services:
       retries: 5
 
   app:
-    image: sergiosjs/rag-orchestrator:2.2.0
+    image: sergiosjs/rag-orchestrator:2.3.0
     restart: unless-stopped
     networks:
       - rag-network
@@ -81,6 +81,12 @@ x-casaos:
       - REST API for search, file management, and admin operations
       - Full web UI: folders, sync status, file browser, search, admin panel
 
+      **v2.3 — Bidirectional translation + configurable prompts:**
+      - Every document now produces both `content_pt` and `content_en` in the index
+      - English documents are translated to Portuguese; Portuguese to English
+      - All three LLM prompts (PT→EN, EN→PT, query enrichment) configurable in Admin UI
+      - Previously hardcoded prompts now editable without restart
+
       **v2.2 — Settings UI + pipeline improvements:**
       - Admin settings page: configure LLM models, translation, chunking without restart
       - Translation and enrichment disabled by default — configure when needed
@@ -116,10 +122,10 @@ x-casaos:
            `http://host.docker.internal:9200` (the default `OPENSEARCH_HOST`).
            No changes needed if you installed OpenSearch with default settings.
 
-        2. **Ollama** (optional) — required for LLM translation (PT→EN) and
-           query enrichment. Set `OLLAMA_HOST` to your Ollama instance.
-           If not configured, Portuguese content is indexed untranslated and
-           query enrichment is skipped.
+        2. **Ollama** (optional) — required for LLM translation (bidirectional:
+           PT→EN and EN→PT) and query enrichment. Set `OLLAMA_HOST` to your
+           Ollama instance. If not configured, each document is indexed in its
+           original language only and query enrichment is skipped.
 
         3. **Docling** (optional) — required only for **scanned PDFs and images**.
            Digital PDFs and Office files (DOCX, PPTX, XLSX) are converted
