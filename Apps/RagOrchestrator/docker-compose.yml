@@ -82,7 +82,13 @@ x-casaos:
       - LLM query enrichment (optional, via Ollama or OpenRouter)
       - MCP server on port 9700 for AI assistant integration
       - REST API for search, file management, and admin operations
-      - Simple web UI for folder management and sync status
+      - Full web UI: folders, sync status, file browser, search, admin panel
+
+      **v2.1 — Full web UI:**
+      - Search page: query box, domain filter, LLM enrichment toggle, results with score
+      - Admin page: pipeline stats, failed file/chunk listing, retry/reindex/forcemerge
+      - Files page: parse status filter, domain filter, per-file reindex and soft-delete
+      - Responsive layout: sidebar collapses to bottom nav on mobile
 
       **v2.0 — OpenSearch module (replaces LightRAG):**
       - Chunking + language detection (langdetect, middle-sample strategy)
