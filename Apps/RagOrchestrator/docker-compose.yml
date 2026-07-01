@@ -23,7 +23,7 @@ services:
       retries: 5
 
   app:
-    image: sergiosjs/rag-orchestrator:2.4.0
+    image: sergiosjs/rag-orchestrator:2.5.1
     restart: unless-stopped
     networks:
       - rag-network
@@ -41,10 +41,11 @@ services:
       DEFAULT_OWNER_USERNAME: default
       SCAN_INTERVAL_MINUTES: "15"
       PARSE_INTERVAL_MINUTES: "5"
-      TRANSLATE_INTERVAL_MINUTES: "5"
-      INDEX_INTERVAL_MINUTES: "5"
+      TRANSLATE_INTERVAL_MINUTES: "1"
+      INDEX_INTERVAL_MINUTES: "1"
       OLLAMA_HOST: http://host.docker.internal:11434
       OPENROUTER_API_KEY: ""
+      TRANSLATE_WORKERS: "10"
       MCP_PORT: "9700"
     volumes:
       - /DATA/AppData/rag-orchestrator/inputs:/data/inputs
