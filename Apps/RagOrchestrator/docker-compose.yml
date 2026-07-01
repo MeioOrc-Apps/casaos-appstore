@@ -23,7 +23,7 @@ services:
       retries: 5
 
   app:
-    image: ghcr.io/meiorc-apps/rag-orchestrator:2.1.0
+    image: ghcr.io/meiorc-apps/rag-orchestrator:2.2.0
     restart: unless-stopped
     networks:
       - rag-network
@@ -83,6 +83,13 @@ x-casaos:
       - MCP server on port 9700 for AI assistant integration
       - REST API for search, file management, and admin operations
       - Full web UI: folders, sync status, file browser, search, admin panel
+
+      **v2.2 — Settings UI + pipeline improvements:**
+      - Admin settings page: configure LLM models, translation, chunking without restart
+      - Translation and enrichment disabled by default — configure when needed
+      - Parse job now processes files in configurable batches (default 20)
+      - OPENSEARCH_HOST and INPUT_DIR have sensible defaults — fewer required env vars
+      - DOCLING_BASE_URL optional — only needed for scanned PDFs / images via OCR
 
       **v2.1 — Full web UI:**
       - Search page: query box, domain filter, LLM enrichment toggle, results with score
