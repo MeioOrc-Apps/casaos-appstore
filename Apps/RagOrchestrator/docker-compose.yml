@@ -39,7 +39,6 @@ services:
       OPENSEARCH_HOST: http://host.docker.internal:9200
       OPENSEARCH_INDEX_PREFIX: rag
       DEFAULT_OWNER_USERNAME: default
-      INPUT_DIR: /data/inputs
       SCAN_INTERVAL_MINUTES: "15"
       PARSE_INTERVAL_MINUTES: "5"
       TRANSLATE_INTERVAL_MINUTES: "5"
