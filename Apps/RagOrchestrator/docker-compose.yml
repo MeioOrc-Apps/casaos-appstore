@@ -45,6 +45,7 @@ services:
       TRANSLATE_INTERVAL_MINUTES: "5"
       INDEX_INTERVAL_MINUTES: "5"
       OLLAMA_HOST: http://host.docker.internal:11434
+      OPENROUTER_API_KEY: ""
       MCP_PORT: "9700"
     volumes:
       - /DATA/AppData/rag-orchestrator/inputs:/data/inputs
