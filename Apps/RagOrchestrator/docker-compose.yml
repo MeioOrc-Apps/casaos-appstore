@@ -23,7 +23,7 @@ services:
       retries: 5
 
   app:
-    image: sergiosjs/rag-orchestrator:2.5.14
+    image: sergiosjs/rag-orchestrator:2.6.0
     restart: unless-stopped
     networks:
       - rag-network
@@ -47,6 +47,10 @@ services:
       OPENROUTER_API_KEY: ""
       TRANSLATE_WORKERS: "10"
       MCP_PORT: "9700"
+      # Hybrid search embedding — local (in-process) by default.
+      # Set EMBEDDING_ENDPOINT to an HTTP URL to use an external service.
+      EMBEDDING_MODEL: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+      EMBEDDING_ENDPOINT: ""
     volumes:
       - /DATA/AppData/rag-orchestrator/inputs:/data/inputs
     extra_hosts:
@@ -66,20 +70,31 @@ x-casaos:
   description:
     en_us: |
       RAG Orchestrator is an automated document ingestion and search pipeline
-      powered by OpenSearch BM25 full-text search.
+      powered by OpenSearch hybrid search (BM25 keyword + vector semantics).
 
       It watches configured folders, detects new or changed files, converts
       documents to text, chunks and language-detects the content, optionally
-      translates Portuguese to English via a local LLM (Ollama), and indexes
-      everything into OpenSearch — all on a configurable schedule.
+      translates Portuguese to English via a local LLM (Ollama), embeds each
+      chunk, and indexes everything into OpenSearch — all on a configurable
+      schedule.
 
       **Features:**
       - Multi-format ingestion: Markdown, text, code, PDF, DOCX, PPTX, XLSX, images
-      - BM25 full-text search across Portuguese and English content
+      - Hybrid search: BM25 keyword + kNN vector (multilingual embeddings), fused
+        with Reciprocal Rank Fusion
       - LLM query enrichment (optional, via Ollama or OpenRouter)
       - MCP server on port 9700 for AI assistant integration
       - REST API for search, file management, and admin operations
       - Full web UI: folders, sync status, file browser, search, admin panel
+
+      **v2.6 — Hybrid semantic search:**
+      - kNN vector search over multilingual embeddings (fastembed, in-process,
+        or an external embedding service via EMBEDDING_ENDPOINT)
+      - Weighted Reciprocal Rank Fusion of BM25 + vector; tune rrf_k,
+        minimum_should_match and per-method weights in the Admin UI
+      - "Reindex Vectors" admin action + embedding progress on Status/Files
+      - Search highlights, result pagination, folder edit toggles
+      - Fix: editing watched files re-indexes cleanly (no chunk collision)
 
       **v2.3 — Bidirectional translation + configurable prompts:**
       - Every document now produces both `content_pt` and `content_en` in the index
@@ -137,3 +152,9 @@ x-casaos:
         - Go to Folders → add host paths to watch
         - Go to Status → click "Sync Now" to run immediately
         - MCP server available at `http://[HOST-IP]:9700` for AI assistant tools
+
+        **Upgrading from v2.5 or earlier (enable hybrid search):**
+        - Existing chunks were indexed without vectors. Go to **Admin → Reindex
+          Vectors** once. It rebuilds the OpenSearch indices with vector support
+          and re-embeds every chunk (keeps translations; no re-parse). Watch
+          progress on the Status page. New/edited files are handled automatically.
